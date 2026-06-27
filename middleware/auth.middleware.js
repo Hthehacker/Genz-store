@@ -10,7 +10,7 @@ const authmiddleware= (req,res,next)=>{
          
     const decodetoken = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
 
-    req.currentuser = decodetoken
+    req.user = decodetoken
     next();
   } catch (error) {
       res.status(400).json({message:error.message})
