@@ -5,6 +5,34 @@ import mail from "nodemailer"
 import {sendOtpEmail} from "../service/emailsend.js"
 import jwt from "jsonwebtoken"
 
+
+const register = async (req,res)=>{
+    try {
+        if (!req.body) {
+            return res.status(400).json({
+            message: "Request body is required"
+            });
+        }
+        const {userName,Email,Password}= req.body
+         if(!userName||!Password||!Email) 
+            return res.status(401).json({Message:"Username or password are required"})
+        const hashedPassword = await bcrypt.hash(Password,10)
+    
+        const user = await User.create({
+            userName,
+            Email,
+            Password:hashedPassword
+        })
+        
+        res.json(user)
+        
+    } catch (error) {
+        res.status(401).json({Message:error})
+    }
+
+
+}
+
 const login = async(req,res)=>{
     const {userName,Password} = req.body
     try {
@@ -45,31 +73,37 @@ const login = async(req,res)=>{
     
 }
 
-const register = async (req,res)=>{
-    try {
-        if (!req.body) {
-            return res.status(400).json({
-            message: "Request body is required"
-            });
+const refreshtoken = async (req,res)=>{
+ try {
+       const incomingrefreshtoken = req.cookies.refreshtoken       
+   
+       const decode = jwt.verify(incomingrefreshtoken,process.env.REFRESH_TOKEN_SECRET)
+   
+       const user = await User.findById(decode.userid) 
+        if(!user)
+            return res.status(401).json("User not found")
+   
+       if(user.RefreshToken!==incomingrefreshtoken)
+          return res.status(401).json("Refresh token might expired or invalid")
+   
+       const newaccesstoken = generateaccestoken(user)
+       const refreshtoken = generaterefreshtoken(user)
+   
+       user.RefreshToken = refreshtoken
+       await user.save()
+
+       const option = {
+        secure:true,
+        httpOnly:true
+       }
+   
+        res.status(200)
+               .cookie("accesstoken",newaccesstoken,option)
+               .cookie("refreshtoken",refreshtoken,option)
+               .json("Uer verified successfully")
+        } catch (error) {
+            res.status(403).json({message:error.message})
         }
-        const {userName,Email,Password}= req.body
-         if(!userName||!Password||!Email) 
-            return res.status(401).json({Message:"Username or password are required"})
-        const hashedPassword = await bcrypt.hash(Password,10)
-    
-        const user = await User.create({
-            userName,
-            Email,
-            Password:hashedPassword
-        })
-        
-        res.json(user)
-        
-    } catch (error) {
-        res.status(401).json({Message:error})
-    }
-
-
 }
 
 const forgetpassword = async (req,res)=>{
@@ -157,11 +191,33 @@ const resetPassword = async (req,res)=>{
 
 
 }
+
+const logout =async (req,res) =>{
+   try {
+     const user = await User.findById(req.user.userid)
+     console.log(user);
+     
+     user.RefreshToken = ""
+     await user.save()
+    const options = {
+            httpOnly: true,
+            secure: true
+        };
+     res.clearCookie("accesstoken",options)
+     res.clearCookie("refreshtoken",options)
+ 
+     res.status(200).json("Logout successfully")
+   } catch (error) {
+     res.status(403).json({message:error.message})
+   }
+}
 export{
     register,
     login,
+    logout,
     forgetpassword,
     verifyOtp,
-    resetPassword
+    resetPassword,
+    refreshtoken
 
 }
