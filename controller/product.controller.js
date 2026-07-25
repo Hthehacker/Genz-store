@@ -1,6 +1,7 @@
 import Product from "../models/product.model.js"
 import cloudinary from "../config/cloudinary.config.js"
 
+
 const createproduct = async (req, res) => {
     try {
         const { name, description, price, stock } = req.body
@@ -89,26 +90,69 @@ const updateProduct = async (req, res) => {
     res.status(200).json(updatedproduct)
 }
 
-const deleteProduct = async (req,res) =>{
+const deleteProduct = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id)
-        if(!product)
+        if (!product)
             return res.status(401).json("Product not found ")
-            if(req.user.userid!==product.createdBy.toString())
-                return res.status(403).json("forbidden")
+        if (req.user.userid !== product.createdBy.toString())
+            return res.status(403).json("forbidden")
         await cloudinary.uploader.destroy(product.images[0].public_id)
         await Product.deleteOne(product)
-    
+
         res.status(200).json("Product is successfully deleted")
     } catch (error) {
-        res.status(401).json({message:error.message})
+        res.status(401).json({ message: error.message })
     }
 }
 
-const searchProduct =async(req,res) => {
-    const {search,limit,page,category} = req.query
-    const filter = {}
-    
+const searchProduct = async (req, res) => {
+    try {
+        const { search, limit, page, category, minprice, maxprice } = req.query
+        const filter = {}
+
+        if (search) {
+            filter.name = {
+                $regex: search,
+                $options: "i"
+            }
+        }
+        if (category)
+            filter.category = category
+        if (minprice || maxprice) {
+            filter.price = {}
+            if (minprice) {
+                filter.price.$gte = Number(minprice)
+            }
+            if (maxprice) {
+                filter.price.$lte = Number(maxprice)
+            }
+        }
+
+        const currentpage = Number(page) || 1
+        const perpage = Number(limit) || 10
+
+        const skip = (currentpage - 1) * perpage
+
+        const product = await Product.find(filter)
+            .skip(skip)
+            .limit(perpage)
+
+        const totalProducts = await Product.countDocuments(filter);
+        const totalpage = Math.ceil(totalProducts / perpage)
+        if (product.length == 0)
+            return res.status(200).json({
+                product,
+                totalProducts,
+                totalpage,
+                currentpage
+            })
+
+        res.status(200).json(product)
+
+    } catch (error) {
+        res.status(401).json(error.message)
+    }
 }
 export {
     createproduct,
