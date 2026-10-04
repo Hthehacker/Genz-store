@@ -1,6 +1,6 @@
 import Product from "../models/product.model.js"
 import cloudinary from "../config/cloudinary.config.js"
-import Cart from "../models/Cart.model.js"
+
 
 
 const createproduct = async (req, res) => {
