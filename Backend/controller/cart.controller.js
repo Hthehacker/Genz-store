@@ -2,7 +2,23 @@ import Cart from "../models/Cart.model.js"
 import Product from "../models/product.model.js"
 
 const getCartItem = async (req,res) => {
-    
+
+    try {
+        const cartItems = await Cart.find({
+            UserId: req.user.userid
+        }).populate("ProductId");
+
+        return res.status(200).json({
+            message: "Cart items fetched successfully",
+            cartItems
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+
 }
 
 const addToCart = async (req, res) => {
@@ -113,6 +129,7 @@ const removeCartItem = async (req, res) => {
 }
 
 export {
+    getCartItem,
     addToCart,
     updateCart,
     removeCartItem
