@@ -10,7 +10,7 @@ import {
 from "../controller/product.controller.js"
 import upload from "../middleware/uploadfile.middleware.js"
 import express from "express"
-import { addToCart, updateCart ,removeCartItem } from "../controller/cart.controller.js"
+import { getCartItem,addToCart, updateCart ,removeCartItem } from "../controller/cart.controller.js"
 
 
 const router = express.Router()
@@ -26,7 +26,7 @@ router.get("/searchproduct",searchProduct)
 
        // * CART ROUTES *
 
-router.get("/getcartitem",)
+router.get("/getcartitem",getCartItem)
 router.post("/addtocart",addToCart)
 router.patch("/updatecart/:id",updateCart)
 router.delete("/removecartitem/:id",removeCartItem)
